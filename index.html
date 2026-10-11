@@ -456,9 +456,15 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
       </ul>
     </div>
     <form id="form" novalidate aria-label="Contact form" class="reveal reveal-d2">
+      <!-- Web3Forms: replace YOUR_ACCESS_KEY_HERE with your key from https://web3forms.com/#start -->
+      <input type="hidden" name="access_key" value="ab98709b-59fe-4896-9141-c3879031fafd">
+      <input type="hidden" name="subject" value="New portfolio message">
+      <input type="hidden" name="from_name" value="Portfolio Contact Form">
+      <!-- Honeypot spam protection -->
+      <input type="checkbox" name="botcheck" style="display:none">
       <div><label for="name">Your name</label><input id="name" name="name" autocomplete="name" required><div class="err" id="e-name"></div></div>
       <div><label for="email">Your email</label><input id="email" name="email" type="email" autocomplete="email" required><div class="err" id="e-email"></div></div>
-      <div><label for="msg">Message</label><textarea id="msg" name="msg" required></textarea><div class="err" id="e-msg"></div></div>
+      <div><label for="msg">Message</label><textarea id="msg" name="message" required></textarea><div class="err" id="e-msg"></div></div>
       <button class="btn pri" type="submit" style="cursor:pointer;font:inherit;font-weight:600;justify-content:center">
         <svg viewBox="0 0 24 24" style="width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
         Send message
@@ -536,19 +542,38 @@ footer .wrap{display:flex;flex-wrap:wrap;justify-content:space-between;gap:12px;
   /* ── Year ── */
   document.getElementById('yr').textContent=new Date().getFullYear();
 
-  /* ── Contact form ── */
-  var f=document.getElementById('form');
+  /* ── Contact form (Web3Forms) ── */
+  var f=document.getElementById('form'), submitBtn=f.querySelector('button[type="submit"]'), statusEl=document.getElementById('status');
   function setErr(id,m){document.getElementById('e-'+id).textContent=m;var el=document.getElementById(id);if(m)el.setAttribute('aria-invalid','true');else el.removeAttribute('aria-invalid')}
   f.addEventListener('submit',function(e){
     e.preventDefault();
-    var n=f.name.value.trim(), em=f.email.value.trim(), m=f.msg.value.trim();
+    var n=f.name.value.trim(), em=f.email.value.trim(), m=f.querySelector('[name="message"]').value.trim();
     setErr('name',n.length<2?'Enter your name (at least 2 characters).':'');
     setErr('email',/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)?'':'Enter a valid email address.');
     setErr('msg',m.length<10?'Write a message of at least 10 characters.':'');
     if(n.length<2||!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(em)||m.length<10)return;
-    var body='From: '+n+' ('+em+')\n\n'+m;
-    location.href='mailto:paritshubham2002@gmail.com?subject='+encodeURIComponent('Portfolio message from '+n)+'&body='+encodeURIComponent(body);
-    document.getElementById('status').textContent='Your email app should open with the message ready to send.';
+    // Disable button and show sending state
+    submitBtn.disabled=true; submitBtn.style.opacity='0.6';
+    statusEl.textContent='Sending...';
+    statusEl.style.color=getComputedStyle(document.documentElement).getPropertyValue('--muted');
+    var formData=new FormData(f);
+    fetch('https://api.web3forms.com/submit',{method:'POST',body:formData})
+      .then(function(r){return r.json()})
+      .then(function(data){
+        if(data.success){
+          statusEl.textContent='\u2705 Message sent! I\'ll get back to you soon.';
+          statusEl.style.color=getComputedStyle(document.documentElement).getPropertyValue('--accent');
+          f.reset();
+        }else{
+          statusEl.textContent='\u274C Something went wrong. Please try again or email me directly.';
+          statusEl.style.color='#C0392B';
+        }
+      })
+      .catch(function(){
+        statusEl.textContent='\u274C Network error. Please try again or email me directly.';
+        statusEl.style.color='#C0392B';
+      })
+      .finally(function(){submitBtn.disabled=false;submitBtn.style.opacity='1';});
   });
 })();
 </script>
